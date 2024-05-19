@@ -9,15 +9,21 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "react-toastify": "^10.0.5",
+    "@react-three/cannon": "^6.6.0",
+    "@react-three/drei": "^9.105.6",
+    "@react-three/fiber": "^8.16.6",
     "@types/react": "^18.3.2",
+    "@types/three": "^0.164.0",
     "fs": "^0.0.1-security",
     "next": "^14.2.3",
     "next-auth": "^4.24.7",
     "react": "^18.3.1",
     "react-bootstrap-icons": "^1.11.4",
-    "react-dom": "^18",
+    "react-dom": "^18.3.1",
     "sqlite": "^5.1.1",
-    "sqlite3": "^5.1.7"
+    "sqlite3": "^5.1.7",
+    "three": "^0.164.1"
   },
   "devDependencies": {
     "@types/node": "^20",
