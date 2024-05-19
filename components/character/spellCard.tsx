@@ -40,8 +40,6 @@ export default function SpellCard({ spell }: { spell: Spell }) {
     )
 }
 
-
-
 function parseEntries(entries: string) {
     // check for {@damage 1d8} or {@dice 1d8} and replace with <span>value</span>
     const regex = /{@(damage|dice) (\d+d\d+)}/g;
