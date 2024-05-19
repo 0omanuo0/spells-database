@@ -1,6 +1,6 @@
-export const runtime = 'edge';
-
 "use client";
+
+export const runtime = 'edge';
 
 import Sidebar from "@/components/sidebar";
 import UserData from "@/components/userData";
