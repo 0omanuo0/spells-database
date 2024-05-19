@@ -1,3 +1,5 @@
+export const runtime = 'edge';
+
 import { getUser } from "@/lib/data";
 import { User } from "@/lib/types";
 import NextAuth from "next-auth"

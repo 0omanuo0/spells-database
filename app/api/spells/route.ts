@@ -1,3 +1,5 @@
+export const runtime = 'edge';
+
 import { filterByName, getSpells } from "@/lib/data";
 
 export async function GET(request: Request) {
