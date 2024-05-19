@@ -40,6 +40,26 @@ export const bonusParser : {[n in number]:number} = {
     20: 5,
 }
 
+export const rarity = ["none", "Common", "Uncommon", "Rare", "Very Rare", "Legendary", "Artifact"];
+export const type_parser : {[n : string]:string} = {
+    "A": "Ammunition",
+    "G": "Adventuring Gear",
+    "LA": "Light Armor",
+    "MA": "Medium Armor",
+    "HA": "Heavy Armor",
+    "M": "Melee Weapon",
+    "R": "Ranged Weapon",
+    "P": "Potion",
+    "SC": "Scroll",
+    "W": "Wondrous Item",
+    "ST": "Staff",
+    "RD": "Rod",
+    "RG": "Ring",
+    "WD": "Wand",
+    "S": "Shield",
+    "SCF": "Spellcasting Focus",
+}
+
 export const schoolParser : {[n in string]:string} = {
     "A": "abjuration",
     "C": "conjuration",
@@ -80,6 +100,10 @@ export function addPlus(value:number):string {
     return value > 0 ? `+${value}` : value.toString();
 }
 
+export type Item = {
+    name : string,
+    data : {[n in any]:any} | string
+}
 
 export type Character = {
     id: number,
@@ -92,7 +116,7 @@ export type Character = {
     skills: string[],
     other_class: string[],
     spells: string,
-    items: {[amount in string]:number}[],
+    items: string,
     campaign: string
 }
 

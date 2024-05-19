@@ -15,7 +15,9 @@ function openDatabase(callback) {
 
 function createTableSpells(db, callback) {
     const createTableSQL = `CREATE TABLE IF NOT EXISTS spells (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT PRIMARY KEY,
+        class TEXT,
+        optionalClass TEXT,
         data TEXT
     );`;
 
@@ -38,22 +40,185 @@ function insertDataSpells(db) {
         './data/spells/spells-tce.json' // Esta ruta está duplicada, asegúrate de que es correcto.
     ];
 
-    files.forEach(file => {
-        const fullPath = path.resolve(file);
-        const rawData = fs.readFileSync(fullPath);
-        const spells = JSON.parse(rawData);
+    const classFile = './Spells.json';
 
-        return spells.spell.forEach(spell => {
-            const data = JSON.stringify(spell);
-            return db.run(`INSERT INTO spells (data) VALUES (?)`, [data], (err) => {
-                if (err) {
-                    return console.error(err.message);
-                }
-                console.log(`Se ha insertado un registro a la base de datos.`);
-            });
+    // create the array of spells, read the file and save it into a variable
+    let spells = [];
+    files.forEach(file => {
+        const rawData = fs.readFileSync(file);
+        const data = JSON.parse(rawData);
+        const spellsFormated = data.spell.map(spell => {
+            return {
+                name: spell.name,
+                data: JSON.stringify(spell)
+            };
+        });
+        spells = spells.concat(spellsFormated);
+    });
+
+    // insert the spells into the database while reading classFile to add the classes compatibles
+    const spClass = JSON.parse(fs.readFileSync(classFile ));
+    spells.forEach(spell => {
+        const name = spell.name;
+        const data = spell.data;
+
+        const classes = spClass.filter(spell => spell.Name === name).map(spell => spell.Classes) || [];
+        const optionalClasses = spClass.filter(spell => spell.Name === name).map(spell => spell["Optional\/Variant Classes"]) || [];
+        
+        return db.run(`INSERT INTO spells (name, class, optionalClass, data) VALUES (?, ?, ?, ?)`, [name, JSON.stringify(classes), JSON.stringify(optionalClasses), JSON.stringify(data)], (err) => {
+            if (err) {
+                return console.error(err.message);
+            }
+            console.log(`Se ha insertado un registro spell a la base de datos.`);
+        });
+    });
+    
+}
+
+function createTableItems(db, callback) {
+    const createTableSQL = `CREATE TABLE IF NOT EXISTS items (
+        name TEXT PRIMARY KEY,
+        data TEXT
+    );`;
+
+    return db.run(createTableSQL, (err) => {
+        if (err) {
+            console.error("err_create", err.message);
+            return callback(err);
+        }
+        console.log("Tabla 'items' creada o ya existente.");
+        callback(null);
+    });
+}
+
+function insertDataItems(db) {
+    const file = './data/items.json';
+    const file2 = './data/items-base.json';
+    const rawData = fs.readFileSync(file);
+    const rawData2 = fs.readFileSync(file2);
+    let data = JSON.parse(rawData)
+    const data2 = JSON.parse(rawData2);
+    data = data.item.concat(data2.baseitem);
+    data.forEach(item => {
+        const name = item.name;
+        const data = JSON.stringify(item);
+
+        return db.run(`INSERT INTO items (name, data) VALUES (?, ?)`, [name, data], (err) => {
+            if (err) {
+                return console.error(err.message);
+            }
+            console.log(`Se ha insertado un registro item a la base de datos.`);
         });
     });
 }
+
+function createTableRace(db, callback) {
+    const createTableSQL = `CREATE TABLE IF NOT EXISTS races (
+        name TEXT PRIMARY KEY,
+        data TEXT
+    );`;
+
+    return db.run(createTableSQL, (err) => {
+        if (err) {
+            console.error("err_create", err.message);
+            return callback(err);
+        }
+        console.log("Tabla 'races' creada o ya existente.");
+        callback(null);
+    });
+}
+
+function insertDataRace(db) {
+    const file = './data/races.json';
+    const rawData = fs.readFileSync(file);
+    const data = JSON.parse(rawData);
+    data.race.forEach(item => {
+        const name = item.name;
+        const data = JSON.stringify(item);
+
+        return db.run(`INSERT INTO races (name, data) VALUES (?, ?)`, [name, data], (err) => {
+            if (err) {
+                return console.error(err.message);
+            }
+            console.log(`Se ha insertado un registro item a la base de datos.`);
+        });
+    });
+}
+
+function createTableBackground(db, callback) {
+    const createTableSQL = `CREATE TABLE IF NOT EXISTS background (
+        name TEXT PRIMARY KEY,
+        data TEXT
+    );`;
+
+    return db.run(createTableSQL, (err) => {
+        if (err) {
+            console.error("err_create", err.message);
+            return callback(err);
+        }
+        console.log("Tabla 'races' creada o ya existente.");
+        callback(null);
+    });
+}
+
+function insertDataBackground(db) {
+    const file = './data/backgrounds.json';
+    const rawData = fs.readFileSync(file);
+    const jsonData = JSON.parse(rawData); // Renombrar esta variable
+
+    if(!jsonData.background) {
+        console.error("No se ha encontrado el campo 'background' en el archivo JSON.");
+        return;
+    }
+
+    jsonData.background.map(item => {
+        const name = item.name;
+        const itemData = JSON.stringify(item); // Renombrar esta variable
+
+        db.run(`INSERT INTO background (name, data) VALUES (?, ?)`, [name, itemData], (err) => {
+            if (err) {
+                return console.error(err.message);
+            }
+            console.log(`Se ha insertado un registro item a la base de datos.`);
+        });
+    });
+}
+
+function createTableFeat(db, callback) {
+    const createTableSQL = `CREATE TABLE IF NOT EXISTS feat (
+        name TEXT PRIMARY KEY,
+        data TEXT
+    );`;
+
+    return db.run(createTableSQL, (err) => {
+        if (err) {
+            console.error("err_create", err.message);
+            return callback(err);
+        }
+        console.log("Tabla 'races' creada o ya existente.");
+        callback(null);
+    });
+}
+
+function insertDataFeat(db) {
+    const file = './data/feats.json';
+    const rawData = fs.readFileSync(file);
+    const data = JSON.parse(rawData);
+    data.feat.forEach(item => {
+        const name = item.name;
+        const data = JSON.stringify(item);
+
+        return db.run(`INSERT INTO feat (name, data) VALUES (?, ?)`, [name, data], (err) => {
+            if (err) {
+                return console.error(err.message);
+            }
+            console.log(`Se ha insertado un registro item a la base de datos.`);
+        });
+    });
+}
+
+    
+    
 
 // create table users and characters
 function createTableUsers(db, callback) {
@@ -79,11 +244,10 @@ function createTableCharacters(db, callback) {
         name TEXT,
         level INTEGER,
         class TEXT,
-        subclass TEXT,
         stats TEXT,
         alignment TEXT,
+        feats TEXT,
         skills TEXT,
-        other_class TEXT,
         spells TEXT,
         items TEXT,
         campaign TEXT,
@@ -145,6 +309,22 @@ openDatabase((err, db) => {
     createTableSpells(db, (err) => {
         if (err) return;
         insertDataSpells(db);
+    });
+    createTableItems(db, (err) => {
+        if (err) return;
+        insertDataItems(db);
+    });
+    createTableRace(db, (err) => {
+        if (err) return;
+        insertDataRace(db);
+    });
+    createTableBackground(db, (err) => {
+        if (err) return;
+        insertDataBackground(db);
+    });
+    createTableFeat(db, (err) => {
+        if (err) return;
+        insertDataFeat(db);
     });
     createTableUsers(db, (err) => {
         if (err) return;
