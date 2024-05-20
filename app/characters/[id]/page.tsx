@@ -1,5 +1,3 @@
-export const runtime = 'edge';
-
 import CharacterCard from "@/components/characterHomeCard"
 import Sidebar from "@/components/sidebar"
 import { User } from "@/lib/types";
