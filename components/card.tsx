@@ -14,6 +14,7 @@ const spell_school: { [key in string]: string } = {
 
 
 export default function SpellCard({ spell }: { spell: Spell }) {
+    console.log(spell)
     return (
         <li className=" list-none py-10 min-h-[250px] px-10 text-black bg-zinc-50 shadow-md rounded-xl relative">
             <div>

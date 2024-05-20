@@ -1,39 +1,40 @@
 "use client";
 
 
-import { dataParserStats, schoolParser, bonusParser, proficiencyBonus, addPlus, SkillsList, Spell, Item, rarity } from "@/lib/types";
+import { dataParserStats, schoolParser, bonusParser, proficiencyBonus, addPlus, SkillsList, Spell, Item, rarity, Character } from "@/lib/types";
 import { ButtonSpawner } from "../diceCanvas";
 import SpellCard from "./spellCard";
-import { ReactNode, createContext, useCallback, useContext, useEffect, useState } from "react";
-import { PlusCircleFill } from "react-bootstrap-icons";
-import { AddSpell } from "./actionButtons";
+import { Dispatch, ReactNode, SetStateAction, createContext, useCallback, useContext, useEffect, useState } from "react";
+import { DashCircleFill, PlusCircleFill } from "react-bootstrap-icons";
+import { AddItem, AddSpell, RemoveSpell, StatEditor } from "./actionButtons";
 
 const ordinals = ["1st", "2nd", "3rd", "4th", "5th", "6th", "7th", "8th", "9th"];
 
+export function SpellsClass(
+    { spells, characterId, actualSpells, maxSpellLevels }
+        : { spells: { data: Spell; classes: string[]; }[], actualSpells: string[], characterId: string, maxSpellLevels: { [c: string]: number } }
+) {
 
-export function SpellsClass({ spells, characterId }: { spells: Spell[], characterId: string }) {
-    const sortedSpellsByLevel = spells.sort((a: Spell, b: Spell) => a.level - b.level);
+    const filteredSpells = spells
+        .filter(spell => spell.classes.some(c => maxSpellLevels[c] >= spell.data.level))
+        .map(spell => spell.data);
+
     const [showSpells, setShowSpells] = useState(false);
+    const [showAll, setShowAll] = useState(false);
+    const [sortedSpellsByLevel, setSpells] = useState<Spell[]>(filteredSpells.sort((a, b) => a.level - b.level));
 
-    const spellList = sortedSpellsByLevel.map((spell: Spell) => {
-        return (
-            <li key={spell.name} className="flex items-center space-x-4 hover:bg-white py-1 px-4 transition-colors duration-500 ease-in-out" >
-                <AddSpell characterId={characterId} spell={spell.name} />
-                <div className="flex space-x-10 items-center justify-between w-full">
-                    <div className="text-left">
-                        <SpellCard spell={spell} />
-                        <p className="text-xs">
-                            {schoolParser[spell.school.toLocaleUpperCase()]}
-                            <span className="px-2 py-[2px] rounded-lg bg-neutral-500 text-white">
-                                {spell.damageInflict ?? "utility"}
-                            </span>
-                        </p>
-                    </div>
-                    <span className="text-xs">{ordinals[spell.level - 1] ?? "Cantrip"}</span>
-                </div>
-            </li>
-        )
-    });
+    useEffect(() => {
+        if (showAll) {
+            setSpells(spells
+                .map(spell => spell.data)
+                .sort((a, b) => a.level - b.level));
+        }
+        else {
+            setSpells(filteredSpells
+                .sort((a, b) => a.level - b.level));
+        }
+    }, [showAll]);
+
     return (
         <>
             {
@@ -51,7 +52,43 @@ export function SpellsClass({ spells, characterId }: { spells: Spell[], characte
                             className="bg-neutral-200 w-fit px-8 pt-6 pb-2 rounded-lg mx-auto"
                         >
                             <ul className="space-y-2 h-[70vh] overflow-scroll">
-                                {spellList}
+                                {
+                                    sortedSpellsByLevel.map(spell => (
+                                        <li key={spell.name} className="flex items-center space-x-4 hover:bg-white py-1 px-4 transition-colors duration-500 ease-in-out">
+                                            {actualSpells.includes(spell.name) ? (
+                                                <RemoveSpell spell={spell.name} characterId={characterId} />
+                                            ) : (
+                                                <AddSpell characterId={characterId} spell={spell.name} />
+                                            )}
+                                            <div className="flex space-x-10 items-center justify-between w-full">
+                                                <div className="text-left">
+                                                    <SpellCard spell={spell} />
+                                                    <p className="text-xs">
+                                                        {schoolParser[spell.school.toUpperCase()]}
+                                                        <span className="px-2 py-[2px] rounded-lg bg-neutral-500 text-white">
+                                                            {spell.damageInflict ?? "utility"}
+                                                        </span>
+                                                    </p>
+                                                </div>
+                                                <span className="text-xs">{ordinals[spell.level - 1] ?? "Cantrip"}</span>
+                                            </div>
+                                        </li>
+                                    ))
+                                }
+                                <button
+                                    onClick={() => setShowAll(!showAll)}
+                                    className="flex items-center space-x-2 mx-auto my-2"
+                                >
+                                    {
+                                        showAll ?
+                                            <DashCircleFill className="text-xl text-neutral-700" />
+                                            :
+                                            <PlusCircleFill className="text-xl text-neutral-700" />
+                                    }
+                                    <h3 className=" text-sm border-neutral-500 tracking-wider uppercase ">
+                                        Show all
+                                    </h3>
+                                </button>
                             </ul>
                             <h3 className=" text-sm border-t-2 mt-2 border-neutral-500 tracking-wider uppercase">
                                 Spells
@@ -72,7 +109,7 @@ export function SpellsClass({ spells, characterId }: { spells: Spell[], characte
     );
 }
 
-export function AllItems({ items }: { items: { [n: string]: any }[] }) {
+export function AllItems({ items, characterId }: { items: { [n: string]: any }[], characterId: string }) {
     const sortedItemsByRarity = items.sort((a: any, b: any) => rarity.indexOf(a.rarity) - rarity.indexOf(b.rarity));
     const [showItems, setShowItems] = useState(false);
     const [itemList, setItemList] = useState<ReactNode[] | null>(null);
@@ -85,6 +122,7 @@ export function AllItems({ items }: { items: { [n: string]: any }[] }) {
             .map((item) => {
                 return (
                     <li key={item.name} className="flex items-center space-x-4 hover:bg-white py-1 px-4 transition-colors duration-500 ease-in-out" >
+                        <AddItem characterId={characterId} item={item.name} />
                         <div className="flex space-x-10 items-center justify-between w-full">
                             <div className="text-left">
                                 <h3>{item.name}</h3>
@@ -116,7 +154,7 @@ export function AllItems({ items }: { items: { [n: string]: any }[] }) {
                                     Find items
                                 </h3>
                                 <input
-                                className="w-full px-2 py-1 border-2 border-neutral-500 rounded-lg mb-2 focus-within:outline-none"
+                                    className="w-full px-2 py-1 border-2 border-neutral-500 rounded-lg mb-2 focus-within:outline-none"
                                     placeholder="Find by name"
                                     onChange={
                                         (e) => setSearch(e.target.value)
@@ -142,8 +180,6 @@ export function AllItems({ items }: { items: { [n: string]: any }[] }) {
 
 }
 
-
-
 export function PasiveCard({ name, value, className }: { name: string, value: number, className?: string }) {
     return (
         <div className={"bg-neutral-200 w-fit px-4 py-2 rounded-lg flex items-center space-x-4 min-w-72 " + className}>
@@ -159,7 +195,10 @@ export function Skills({ stats, proficiency, proficiencyBonus }: { stats: any, p
         return (
             <li key={key} className="flex text-left space-x-2 justify-between text-xs">
                 <p className="w-14 text-left">
-                    {proficiency.includes(key) ? <span className="-ml-3">•</span> : null} {value}
+                    {
+                        proficiency.includes(key) ? <span className="-ml-3">•</span> : null
+                    }
+                    {value}
                 </p>
                 <p className="text-left w-full">{key}</p>
                 <ButtonSpawner dice={20} bonus={valueParsed}>
@@ -213,16 +252,22 @@ export function ArmorClass({ stats }: { stats: any }) {
     )
 }
 
-export function StatCard({ stat, value }: { stat: string, value: number }) {
+export function StatCard({ stat, value, characterId }: { stat: string, value: number, characterId: string }) {
     const valueParsed = bonusParser[value as number];
+    const [showEditor, setShowEditor] = useState(false);
     return (
         <li className="flex flex-col w-24 items-center bg-neutral-200 shadow-xl rounded-lg p-4">
             <p className="text-xl">{stat}</p>
-            <span className="text-2xl">{valueParsed > 0 ? `+${valueParsed}` : valueParsed}</span>
             <ButtonSpawner dice={20} bonus={valueParsed}>
-                <span className=" border-2 border-black rounded-2xl px-2 w-12 " >{value}</span>
+                <span className="text-2xl">{valueParsed > 0 ? `+${valueParsed}` : valueParsed}</span>
             </ButtonSpawner>
-        </li>
+            <button onClick={() => setShowEditor(true)}>
+                <span className=" border-2 border-black rounded-2xl px-2 w-12 " >{value}</span>
+            </button>
+            {
+                showEditor ? <StatEditor stat={stat} value={value} setShowEditor={setShowEditor} characterId={characterId} /> : null
+            }
+        </li >
     )
 }
 
@@ -248,5 +293,33 @@ export function SavingThrows({ stats, proficiency }: { stats: any, proficiency: 
             </ul>
             <p className="block border-t-2 border-neutral-700 mx-8 text-xs uppercase pb-2 pt-1">saving throws</p>
         </div>
+    )
+}
+
+export function HeadCharacter({ character, characterClass }: { character: Character, characterClass: { [c: string]: number } }) {
+    return (
+        <nav>
+            <h1 className="text-2xl">{character.name}</h1>
+            <section className="flex space-x-2 border-b-2 justify-between">
+                <div className="flex space-x-2 ">
+                    <p>Half-Elf</p>
+                    <span className="">|</span>
+                    {
+                        Object.entries(characterClass).map(([key, value]: [any, any]) => {
+                            return <p key={key} className="capitalize">{key} {value}</p>
+                        })
+                    }
+                </div>
+                <div className="flex space-x-1 items-end text-xs"> {/* Modified line */}
+                    <p className=" italic">Alignment:</p> {/* Modified line */}
+                    {
+                        // add coma and space between span if not last element
+                        character.alignment.split(",").map((word, index) => {
+                            return <span key={index} className="capitalize">{word}</span>
+                        })
+                    }
+                </div>
+            </section>
+        </nav>
     )
 }

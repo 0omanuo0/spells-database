@@ -1,6 +1,6 @@
 "use client";
 
-export const runtime = 'edge';
+// export const runtime = 'edge';
 
 import Image from "next/image";
 import { ReactNode, use, useEffect, useState } from "react";
@@ -19,14 +19,14 @@ export default function Home() {
         const fetchData = async () => {
             const res = await fetch(`/api/spells?q=${finder}`);
             // console.log(await res.json());
-            let spells : Spell[] = await res.json();
+            let spells : string[] = await res.json();
             // if are more than 20 spells, slice the array
             if (spells.length > 20) {
                 spells = spells.slice(0, 20);
             }
-            console.log(spells);
             const spellsCards = spells.map((spell) => {
-                return <SpellCard key={spell.name} spell={spell} />;
+                const spellp : Spell = JSON.parse(spell);
+                return <SpellCard key={spellp.name} spell={spellp} />;
             });
             setSpells(spellsCards);
         }

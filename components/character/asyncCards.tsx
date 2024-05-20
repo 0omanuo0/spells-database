@@ -4,6 +4,7 @@ import { PlusCircleFill } from "react-bootstrap-icons";
 import SpellCard from "@/components/character/spellCard";
 import { getCharacter, getClass, getItem, getSpellsByName } from "@/lib/data";
 import { Item, Spell, rarity, schoolParser, type_parser } from "@/lib/types";
+import { RemoveItem, RemoveSpell } from "./actionButtons";
 
 
 const ordinals = ["1st", "2nd", "3rd", "4th", "5th", "6th", "7th", "8th", "9th"];
@@ -11,7 +12,7 @@ const ordinals = ["1st", "2nd", "3rd", "4th", "5th", "6th", "7th", "8th", "9th"]
 
 
 
-export async function SpellList({ children, spells }: { spells: string[], children: JSX.Element }) {
+export async function SpellList({ children, spells, characterId }: { spells: string[], children: JSX.Element, characterId: string}) {
     if (!spells) return null;
 
     const spellsData = (await Promise.all(spells.map(async (spell) => {
@@ -27,6 +28,7 @@ export async function SpellList({ children, spells }: { spells: string[], childr
                 {/* <button>
                     <PlusCircleFill className="text-xl text-neutral-700" />
                 </button> */}
+                <RemoveSpell spell={spell.name} characterId={characterId} />
                 <div className="flex space-x-10 items-center justify-between w-full">
                     <div className="text-left">
                         <SpellCard spell={spell} />
@@ -51,7 +53,7 @@ export async function SpellList({ children, spells }: { spells: string[], childr
     )
 }
 
-export async function ItemList({ children, items }: { items: string[], children?: JSX.Element }) {
+export async function ItemList({ children, items, characterId }: { items: string[], children?: JSX.Element, characterId: string}) {
     if (!items) return null;
 
     const itemsData = (await Promise.all(items.map(async (item) => {
@@ -67,6 +69,7 @@ export async function ItemList({ children, items }: { items: string[], children?
         if (!item || typeof item.data === "string") return null; 
         return (
             <li key={item.name} className="flex items-center space-x-4 hover:bg-white py-1 px-4 transition-colors duration-500 ease-in-out" >
+                <RemoveItem item={item.name} characterId={characterId} />
                 <div className="flex space-x-10 items-center justify-between w-full">
                     <div className="text-left">
                         <h3>{item.name}</h3>

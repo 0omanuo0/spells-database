@@ -1,10 +1,10 @@
 "use server";
 
-import { getAllItems, getCharacter, getClass, getSpellsByClass } from "@/lib/data";
+import { getAllItems, getCharacter, getClass, getMaxSpellLevelByClass, getSpellsByClass } from "@/lib/data";
 import { bonusParser, proficiencyBonus, addPlus, } from "@/lib/types";
 import Image from "next/image";
 
-import { ArmorClass, DataCard, Skills, StatCard, SavingThrows, PasiveCard, SpellsClass, AllItems } from "@/components/character/CardsCharacter";
+import { ArmorClass, DataCard, Skills, StatCard, SavingThrows, PasiveCard, SpellsClass, AllItems, HeadCharacter } from "@/components/character/CardsCharacter";
 import DiceCanvas from "@/components/diceCanvas";
 import { Suspense } from "react";
 import { ItemList, SpellList } from "@/components/character/asyncCards";
@@ -17,27 +17,34 @@ export default async function CharacterCard({ id }: { id?: string }) {
 
     const character = await getCharacter(id);
     if (!character) return (<p>Character not found</p>);
+
+
     const characterClass: { [c: string]: number } = JSON.parse(character.class);
-    const classesData = await Promise.all(Object.keys(characterClass).map(
-        async (cClass) => (await getClass(cClass)).class[0]
+    const classNames = Object.keys(characterClass);
+    
+    const classesData = await Promise.all(classNames.map(
+        async (cClass) => (await getClass(cClass) || { proficiency: null })
     ));
 
     const stats = Object.entries(JSON.parse(character.stats)).map(
-        ([key, value]) => <StatCard key={key} stat={key} value={value as number} />
+        ([key, value]) => <StatCard key={key} stat={key} value={value as number} characterId={id} />
     );
 
     const c_stats = JSON.parse(character.stats);
 
-    const spellsByClass = (await Promise.all(
-        Object.keys(characterClass).map(
-            async (key) => {
-                return await getSpellsByClass(key);
-            }
-        )
-    )).flat();
+    const spellsByClass = (await Promise.all(classNames.map(getSpellsByClass))).flat();
+
+    const maxSpellLevels = await Promise.all(
+        classNames.map(async (key) => {
+            const level = characterClass[key];
+            return { [key]: await getMaxSpellLevelByClass(key, level) };
+        })
+    ).then(levels => Object.assign({}, ...levels));
 
     const allItems = await getAllItems();
-    
+    const characterItems = JSON.parse(character.items) as string[];
+    const characterSpells = JSON.parse(character.spells) as string[];
+
 
     const characterLevel = Object.values(characterClass).reduce((acc, curr) => acc + curr, 0);
 
@@ -45,29 +52,7 @@ export default async function CharacterCard({ id }: { id?: string }) {
         <DiceProvider>
             <article className=" bg-white p-16 text-black m-20 space-y-4 rounded-xl text-center">
                 <DiceCanvas className="fixed top-0 left-0 w-[vw] h-[vh]" />
-                <nav>
-                    <h1 className="text-2xl">{character.name}</h1>
-                    <section className="flex space-x-2 border-b-2 justify-between">
-                        <div className="flex space-x-2 ">
-                            <p>Half-Elf</p>
-                            <span className="">|</span>
-                            {
-                                Object.entries(characterClass).map(([key, value]: [any, any]) => {
-                                    return <p key={key} className="capitalize">{key} {value}</p>
-                                })
-                            }
-                        </div>
-                        <div className="flex space-x-1 items-end text-xs"> {/* Modified line */}
-                            <p className=" italic">Alignment:</p> {/* Modified line */}
-                            {
-                                // add coma and space between span if not last element
-                                character.alignment.split(",").map((word, index) => {
-                                    return <span key={index} className="capitalize">{word}</span>
-                                })
-                            }
-                        </div>
-                    </section>
-                </nav>
+                <HeadCharacter character={character} characterClass={characterClass} />
                 <ul className="flex justify-between">
                     {stats}
                 </ul>
@@ -86,16 +71,16 @@ export default async function CharacterCard({ id }: { id?: string }) {
                 <PasiveCard name="PASSIVE WISDOM (PERCEPTION)" value={c_stats.dex} className="mx-10" />
                 <section className="flex space-x-6 text-center justify-between mx-10">
                     <Suspense fallback={<div>Loading...</div>}>
-                        <SpellList spells={JSON.parse(character.spells) as string[]} >
+                        <SpellList spells={characterSpells} characterId={id} >
                             <Suspense fallback={<div>Loading...</div>}>
-                                <SpellsClass spells={spellsByClass} characterId={id} />
+                                <SpellsClass spells={spellsByClass} actualSpells={characterSpells} characterId={id} maxSpellLevels={maxSpellLevels} />
                             </Suspense>
                         </SpellList>
                     </Suspense>
                     <Suspense fallback={<div>Loading...</div>}>
-                        <ItemList items={JSON.parse(character.items) as string[]}>
+                        <ItemList items={characterItems} characterId={id} >
                             <Suspense fallback={<div>Loading...</div>}>
-                                <AllItems items={allItems} />
+                                <AllItems items={allItems} characterId={id} />
                             </Suspense>
                         </ItemList>
                     </Suspense>

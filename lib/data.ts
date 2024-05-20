@@ -1,7 +1,7 @@
 // db.ts
 import sqlite3 from 'sqlite3';
 import { open } from 'sqlite';
-import type { Spell, User,  Character, Item } from '@/lib/types';
+import type { Spell, User, Character, Item } from '@/lib/types';
 
 sqlite3.verbose();
 
@@ -11,7 +11,6 @@ export async function openDb() {
         driver: sqlite3.Database
     });
 }
-
 
 async function checkUserExists(id: string): Promise<boolean> {
     return new Promise(async (resolve, reject) => {
@@ -52,7 +51,7 @@ async function modifyCharacter(character: Character) {
 
 export async function getItem(id: string) {
     const db = await openDb();
-    let item : Item | undefined = await db.get(`SELECT * FROM items WHERE name=?`, [id]);
+    let item: Item | undefined = await db.get(`SELECT * FROM items WHERE name=?`, [id]);
     if (item) item.data = item.data ? JSON.parse(item.data as string) : {};
     return item;
 }
@@ -85,7 +84,7 @@ export async function getUser(id: string) {
 
 export async function getCharacter(id: string) {
     const db = await openDb();
-    const character : Character | undefined = await db.get(`SELECT * FROM characters WHERE id=?`, [id]);
+    const character: Character | undefined = await db.get(`SELECT * FROM characters WHERE id=?`, [id]);
     return character;
 }
 
@@ -94,7 +93,7 @@ export async function getClass(name: string) {
     const rawData = await db.get(`SELECT * FROM classes WHERE name=?`, [name.charAt(0).toUpperCase() + name.slice(1)]);
     if (!rawData) return undefined;
     const classData = JSON.parse(rawData.data);
-    return classData;
+    return classData.class[0] as {[key: string]: any};
 }
 
 
@@ -110,33 +109,46 @@ export async function getSpells() {
 export async function getSpellsByClass(classD: string) {
     const db = await openDb();
     const data = await db.all('select * from spells');
-    // data is {id: number, class:string[] data: string}[]
+    // data is {id: number, class:string[], data: string}[]
     const spell = data.map((spell) => {
         // return the spell and the classes
-        return [JSON.parse(spell.data) as string, spell.class as string];
+        return {
+            data: JSON.parse(spell.data),
+            classes: spell.class
+        };
     });
-    // filter spells if classD is in classes and return spell[0]
+    // filter spells if classD is in classes and return the spell object
     const spells = spell.filter((spell) => {
-        return spell[1].includes(classD);
+        return spell.classes.includes(classD) || spell.classes.length === 0;
     }).map((spell) => {
-        return JSON.parse(spell[0]);
+        return {
+            data: JSON.parse(spell.data),
+            classes: JSON.parse(spell.classes)
+        };
     });
-    return spells as Spell[];
+    return spells as { data: Spell, classes: string[] }[];
+}
+
+export async function getMaxSpellLevelByClass(classD: string, level:number) {
+    const dataClass = await getClass(classD);
+    if (!dataClass) return 0;
+    
+    const progressionList : number[] = dataClass.classTableGroups[1].rowsSpellProgression[level-1];
+    return progressionList.findIndex((value) => value === 0);
 }
 
 export async function getSpellsByName(name: string) {
     // filter by name with sql (to lower case name and spell.name)
     const db = await openDb();
-    const data = await db.all('select * from spells where lower(name) like ?', [ name.toLowerCase()]);
+    const data = await db.all('select * from spells where lower(name) like ?', [name.toLowerCase()]);
     const spells = data.map((spell) => {
         return JSON.parse(spell.data);
     });
     return JSON.parse(spells[0]);
-    
+
 }
 
-
-export async function filterByName(name: string) : Promise<Spell[]> {
+export async function filterByName(name: string): Promise<Spell[]> {
     // example:
     // {"name":"Acid Splash","source":"PHB",...
     const data = await getSpells();
@@ -145,3 +157,4 @@ export async function filterByName(name: string) : Promise<Spell[]> {
     });
     return spells;
 }
+
