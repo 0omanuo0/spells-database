@@ -57,14 +57,25 @@ function insertDataSpells(db) {
     });
 
     // insert the spells into the database while reading classFile to add the classes compatibles
-    const spClass = JSON.parse(fs.readFileSync(classFile ));
+    const spClass = JSON.parse(fs.readFileSync(classFile));
     spells.forEach(spell => {
         const name = spell.name;
         const data = spell.data;
+        // split "Artificer, Druid, Ranger, Sorcerer, Wizard" into ["Artificer", "Druid", "Ranger", "Sorcerer", "Wizard"]
+        const classes = spClass
+            .filter(spell => spell.Name === name)
+            .map(spell => {
+                return spell.Classes ? spell.Classes
+                    .split(',')
+                    .map(c => c.trim()) : [];
+            })[0] || [];
+        const optionalClasses = spClass
+            .filter(spell => spell.Name === name)
+            .map(spell => {
+                const a = spell["Optional\/Variant Classes"];
+                return a ? a.split(',').map(c => c.trim()) : [];
+            })[0] || [];
 
-        const classes = spClass.filter(spell => spell.Name === name).map(spell => spell.Classes) || [];
-        const optionalClasses = spClass.filter(spell => spell.Name === name).map(spell => spell["Optional\/Variant Classes"]) || [];
-        
         return db.run(`INSERT INTO spells (name, class, optionalClass, data) VALUES (?, ?, ?, ?)`, [name, JSON.stringify(classes), JSON.stringify(optionalClasses), JSON.stringify(data)], (err) => {
             if (err) {
                 return console.error(err.message);
@@ -72,7 +83,7 @@ function insertDataSpells(db) {
             console.log(`Se ha insertado un registro spell a la base de datos.`);
         });
     });
-    
+
 }
 
 function createTableItems(db, callback) {
@@ -166,7 +177,7 @@ function insertDataBackground(db) {
     const rawData = fs.readFileSync(file);
     const jsonData = JSON.parse(rawData); // Renombrar esta variable
 
-    if(!jsonData.background) {
+    if (!jsonData.background) {
         console.error("No se ha encontrado el campo 'background' en el archivo JSON.");
         return;
     }
@@ -217,8 +228,8 @@ function insertDataFeat(db) {
     });
 }
 
-    
-    
+
+
 
 // create table users and characters
 function createTableUsers(db, callback) {
@@ -239,8 +250,8 @@ function createTableUsers(db, callback) {
 // user_id references users(id), subclass is array of strings
 function createTableCharacters(db, callback) {
     const createTableSQL = `CREATE TABLE IF NOT EXISTS characters (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        user_id TEXT,
+        id INTEGER  AUTOINCREMENT,
+        user_id TEXT PRIMARY KEY,
         name TEXT,
         level INTEGER,
         class TEXT,
@@ -337,6 +348,6 @@ openDatabase((err, db) => {
         insertDataClasses(db);
     });
     db.close();
-    
+
 });
 
