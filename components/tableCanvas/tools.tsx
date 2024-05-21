@@ -1,4 +1,4 @@
-import { Tool, Path } from "./editor";
+import { Tool, Path } from "./canvasTypes";
 
 
 export function ToolsCanvas(
@@ -23,6 +23,12 @@ export function ToolsCanvas(
                 className="px-4 py-2 bg-blue-500 text-white rounded"
             >
                 selector
+            </button>
+            <button
+                onClick={() => setCurrentTool(Tool.Move)}
+                className="px-4 py-2 bg-blue-500 text-white rounded"
+            >
+                Move
             </button>
             <input
                 type="color"
@@ -52,7 +58,7 @@ export function RemoveToolsCanvas(
             >
                 Clear All
             </button>
-            <button
+            {/* <button
                 onClick={() => {
                     const newPaths = paths.filter(path => !path.selected);
                     setPaths(newPaths);
@@ -60,7 +66,7 @@ export function RemoveToolsCanvas(
                 className="px-4 py-2 bg-red-500 text-white rounded"
             >
                 Remove selected
-            </button>
+            </button> */}
         </div>
     )
 }

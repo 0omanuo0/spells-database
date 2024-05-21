@@ -1,11 +1,14 @@
 "use client";
 
 import { SessionProvider } from "next-auth/react";
+import CanvasProvider from "./tableCanvas/editorProvider";
 
-export default function Providers({ children }:{children: React.ReactNode}) {
+export default function Providers({ children }: { children: React.ReactNode }) {
     return (
         <SessionProvider>
-            {children}
+            <CanvasProvider>
+                {children}
+            </CanvasProvider>
         </SessionProvider>
     );
 }

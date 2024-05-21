@@ -1,38 +1,49 @@
-import { Point, Path } from "./editor";
+import { useCanvas } from "./editorProvider";
 
-export default function DrawingSvgCanvas(
-    { className, paths, currentPath, currentColor, startDrawing, draw, stopDrawing, getPathD, selection }
-        : {
-            className: string,
-            paths: Path[],
-            currentPath: Point[],
-            currentColor: string,
-            startDrawing: (e: React.MouseEvent<SVGSVGElement>) => void,
-            draw: (e: React.MouseEvent<SVGSVGElement>) => void,
-            stopDrawing: () => void,
-            getPathD: (points: Point[]) => string,
-            selection: Point[] | null
-        }) {
+export default function DrawingSvgCanvas({ className }: { className: string }) {
+
+    const {
+        internal: { onMouseDown, onMouseMove, onMouseUp, paths, getPathD, currentPath, selection, selectedBlock },
+        external: { currentColor }
+    } = useCanvas();
 
     return (
         <svg
             width={800}
             height={600}
             className={className}
-            onMouseDown={startDrawing}
-            onMouseMove={draw}
-            onMouseUp={stopDrawing}
-            onMouseLeave={stopDrawing}
+            onMouseDown={onMouseDown}
+            onMouseMove={onMouseMove}
+            onMouseUp={onMouseUp}
+            onMouseLeave={onMouseUp}
         >
-            {paths.map(path => (
-                <path
-                    key={path.id}
-                    d={getPathD(path.points)}
-                    stroke={path.color}
-                    fill="none"
-                    strokeWidth={path.selected ? 2 : 1}
-                />
-            ))}
+            {paths.map((path, index) => {
+                console.log(selectedBlock)
+                return (
+                    <>
+                        {
+                            selectedBlock?.paths?.includes(path.id) ?
+                                <path
+                                    key={path.id + "index"}
+                                    d={getPathD(path.points)}
+                                    stroke={"#6cb6f2"}
+                                    fill="none"
+                                    strokeWidth={4}
+                                />
+                                : null
+                        }
+                        <path
+                            key={path.id}
+                            d={getPathD(path.points)}
+                            stroke={path.color}
+                            fill="none"
+                            strokeWidth={1}
+                        />
+                    </>
+                )
+
+            }
+            )}
             {currentPath.length > 0 && (
                 <path
                     d={getPathD(currentPath)}
