@@ -18,7 +18,6 @@ export default function DrawingSvgCanvas({ className }: { className: string }) {
             onMouseLeave={onMouseUp}
         >
             {paths.map((path, index) => {
-                console.log(selectedBlock)
                 return (
                     <>
                         {

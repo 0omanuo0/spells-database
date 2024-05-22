@@ -11,12 +11,11 @@ import DrawingImgCanvas from './imgCanvas';
 
 export default function DrawingCanvas() {
 
-    const [swichDrawing, setSwichDrawing] = useState(false);
 
 
     const {
         external: {
-            setCurrentTool, setCurrentColor, activeLayer, setActiveLayer, layers, addImage, setLayers, currentTool
+            setCurrentTool, setCurrentColor, activeLayer, setActiveLayer, layers, addImage, setLayers, currentTool, removeCanvasLayer
         },
         internal: { removeLastPath, setPaths, paths }
     } = useCanvas();
@@ -26,6 +25,11 @@ export default function DrawingCanvas() {
         <div className="flex flex-col items-center justify-center h-screen bg-gray-100">
 
             <ToolsCanvas setCurrentTool={setCurrentTool} setCurrentColor={setCurrentColor} />
+            <button
+                onClick={() => addImage('https://via.placeholder.com/150', 150, 150, 0, 0)}
+                className="px-4 py-2 bg-blue-500 text-white rounded">
+                Add Image
+            </button>
             <div>
                 <ul className='flex' key={activeLayer} >
                     {
@@ -37,6 +41,7 @@ export default function DrawingCanvas() {
                                     onContextMenu={
                                         (e) => {
                                             e.preventDefault();
+                                            removeCanvasLayer(parseInt(layer));
                                         }
                                     }
                                     className={`px-4 py-2 ${activeLayer === parseInt(layer) ? 'bg-blue-500 text-white' : 'bg-gray-200 text-black'} rounded`}
@@ -67,8 +72,8 @@ export default function DrawingCanvas() {
                         className="border border-black"
                     />
                     <DrawingImgCanvas
-                        className={`border border-black absolute top-0 left-0 ${currentTool!==Tool.Move ? ' pointer-events-none' : ''}`}
-                        />
+                        className={`border border-black absolute top-0 left-0 ${true ? ' pointer-events-none' : ''}`}
+                    />
                 </div>
             </div>
             <RemoveToolsCanvas removeLastPath={removeLastPath} setPaths={setPaths} paths={paths} />

@@ -1,6 +1,6 @@
 import React, { useRef, useEffect, useState, useContext, createContext } from 'react';
 import { Path, Point, Tool, defaultLayers, Layer, Img } from './canvasTypes';
-import { getSvgPoint, isSelected, removeLayer, setPosMoving, setStartMoving } from './canvasFunctions';
+import { getSvgPoint, isImageSelected, isPathSelected, removeLayer, setPosMoving, setStartMoving } from './canvasFunctions';
 
 
 interface CanvasProviderProps {
@@ -27,6 +27,7 @@ interface CanvasProviderProps {
         layers: Layer;
         addImage: (src: string, width: number, height: number, x: number, y: number) => void;
         setLayers: React.Dispatch<React.SetStateAction<Layer>>;
+        removeCanvasLayer: (layer: number) => void;
     };
 }
 
@@ -43,6 +44,7 @@ export const useCanvas = () => {
 
 
 export default function CanvasProvider({ children, className }: { children?: React.ReactNode, className?: string }) {
+    const grid = 10;
     const [currentTool, setCurrentTool] = useState<Tool>(Tool.Pen);
     const [currentColor, setCurrentColor] = useState<string>('#000000');
     const [activeLayer, setActiveLayer] = useState<number>(0);
@@ -53,34 +55,42 @@ export default function CanvasProvider({ children, className }: { children?: Rea
     const [paths, setPaths] = useState<Path[]>([]);
     const [currentPath, setCurrentPath] = useState<Point[]>([]);
     const [isDrawing, setIsDrawing] = useState(false);
+    const [initialClick, setInitialClick] = useState<Point | null>(null);
+    const [absoluteCoords, setAbsoluteCoords] = useState<Point>({ x: 0, y: 0 });
 
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const [isDragging, setIsDragging] = useState<number | null>(null);
-    const [relativePosition, setRelativePosition] = useState<Point>({ x: 0, y: 0 });
-    const image = useRef<HTMLImageElement>(new Image()).current;
+    const [relativePosition, setRelativePosition] = useState<{ images: Point[], paths: Point[][] } | null>(null);
 
-    useEffect(() => {
-        image.src = '/static/image/shield.png'; // Reemplaza con la URL de tu imagen
-        image.onload = () => {
-            setImages([
-                ...images,
-                {
-                    id: Date.now(),
-                    name: image.src,
-                    src: image.src,
-                    width: image.width,
-                    height: image.height,
-                    position: { x: 100, y: 100 },
-                    image
-                },
-            ]);
-            drawImage();
-        };
-    }, [image]);
+
+    const drawImage = (selectedImages?: number[]) => {
+        if (canvasRef.current) {
+            const ctx = canvasRef.current.getContext('2d');
+            if (ctx) {
+                ctx.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
+                images.forEach(img => {
+                    const px = img.position.x + absoluteCoords.x;
+                    const py = img.position.y + absoluteCoords.y;
+                    // set the image style
+                    if (!selectedImages && selectedBlock?.images?.includes(img.id)) {
+                        ctx.strokeStyle = 'blue';
+                        ctx.lineWidth = 2;
+                        ctx.strokeRect(px, py, img.width, img.height);
+                    }
+                    else if (selectedImages && selectedImages.includes(img.id)) {
+                        ctx.strokeStyle = 'blue';
+                        ctx.lineWidth = 2;
+                        ctx.strokeRect(px, py, img.width, img.height);
+                    }
+                    ctx.drawImage(img.image, px, py, img.width, img.height);
+                });
+            }
+        }
+    }
 
     useEffect(() => {
         drawImage();
-    }, [images]);
+    }, [images, absoluteCoords]);
 
     const onMouseDown = (e: React.MouseEvent<any>) => {
         if (currentTool === Tool.Pen) {
@@ -88,14 +98,24 @@ export default function CanvasProvider({ children, className }: { children?: Rea
             setIsDrawing(true);
         }
         else if (currentTool === Tool.Selector) {
-            const point = getSvgPoint(e);
-            setSelection([point, getSvgPoint(e)]);
+            const canvas = canvasRef.current;
+            if (!canvas) return;
+            if (setStartMoving(e, canvas, images, paths, setIsDragging, setRelativePosition, selectedBlock)) {
+                if (selectedBlock && selectedBlock?.images!.length > 0 && selectedBlock?.paths!.length > 0)
+                    setIsDragging(NaN);
+                setSelection(null);
+            }
+            else {
+                const point = getSvgPoint(e);
+                setSelection([point, getSvgPoint(e)]);
+                setSelectedBlock(null);
+                drawImage([]);
+            }
         }
         else if (currentTool === Tool.Move) {
             const canvas = canvasRef.current;
             if (!canvas) return;
-            setStartMoving(e, canvas, images, setIsDragging, setRelativePosition);
-            console.log('isDragging', isDragging);
+            setInitialClick(getSvgPoint(e));
         }
     };
 
@@ -106,13 +126,25 @@ export default function CanvasProvider({ children, className }: { children?: Rea
             setSelectedBlock(null);
         }
         else if (currentTool === Tool.Selector) {
-            if (selection === null) return;
-            setSelection([selection[0], getSvgPoint(e)]);
+            if (isDragging !== null) {
+                const canvas = canvasRef.current;
+                if (!canvas) return;
+                const [newimages, newpaths] = setPosMoving(e, canvas, images, paths, isDragging, relativePosition, selectedBlock)
+                setImages(newimages);
+                setPaths(newpaths);
+            }
+            else if (selection) {
+                setSelection([selection[0], getSvgPoint(e)]);
+                setSelectedBlock(null);
+            }
         }
         else if (currentTool === Tool.Move) {
-            if (isDragging === null) return;
-            const canvas = canvasRef.current;
-            if (canvas) setImages(setPosMoving(e, canvas, images, isDragging, relativePosition));
+            if (initialClick) {
+                const { x: dx, y: dy } = getSvgPoint(e);
+                setAbsoluteCoords({ x: absoluteCoords.x + dx - initialClick.x, y: absoluteCoords.y + dy - initialClick.y });
+                console.log(absoluteCoords);
+                setInitialClick(getSvgPoint(e));
+            }
         }
     }
 
@@ -126,19 +158,25 @@ export default function CanvasProvider({ children, className }: { children?: Rea
             setIsDrawing(false);
         }
         else if (currentTool === Tool.Selector) {
-            if (selection) {
-                let pathsSelected: number[] = [];
-                paths.forEach((path, index) => {
-                    if (isSelected(selection, path, activeLayer)) pathsSelected.push(path.id);
-                });
-                setSelectedBlock({ paths: pathsSelected });
-                console.log('pathsSelected', pathsSelected);
+            if (isDragging !== null) {
+                setIsDragging(null);
+                setRelativePosition(null);
             }
+            else if (selection) {
+                const selectedPaths = paths.filter(path => isPathSelected(selection, path, activeLayer, absoluteCoords)).map(path => path.id);
+                const selectedImages = images.filter(img => isImageSelected(selection, img, absoluteCoords)).map(img => img.id);
+                if (selectedPaths.length > 0 || selectedImages.length > 0)
+                    setSelectedBlock({
+                        paths: selectedPaths,
+                        images: selectedImages
+                    });
+                if (selectedImages.length > 0) drawImage(selectedImages);
 
+            }
             setSelection(null);
         }
         else if (currentTool === Tool.Move) {
-            setIsDragging(null);
+            setInitialClick(null);
         }
     }
 
@@ -148,37 +186,25 @@ export default function CanvasProvider({ children, className }: { children?: Rea
 
     const getPathD = (points: Point[]): string => {
         if (points.length < 3) {
-            return `M ${points.map(p => `${p.x},${p.y}`).join(' L ')}`;
+            return `M ${points.map(p => `${p.x + absoluteCoords.x},${p.y + absoluteCoords.y}`).join(' L ')}`;
         }
-        let d = `M ${points[0].x},${points[0].y}`;
+        let d = `M ${points[0].x + absoluteCoords.x},${points[0].y + absoluteCoords.y}`;
         for (let i = 1; i < points.length - 2; i++) {
-            const xc = (points[i].x + points[i + 1].x) / 2;
-            const yc = (points[i].y + points[i + 1].y) / 2;
-            d += ` Q ${points[i].x},${points[i].y} ${xc},${yc}`;
+            // Use the average of the two points as the control point, add the absolute coords
+            const xc = (points[i].x + points[i + 1].x) / 2 + absoluteCoords.x;
+            const yc = (points[i].y + points[i + 1].y) / 2 + absoluteCoords.y;
+            d += ` Q ${points[i].x + absoluteCoords.x},${points[i].y + absoluteCoords.y} ${xc},${yc}`;
         }
-        d += ` Q ${points[points.length - 2].x},${points[points.length - 2].y} ${points[points.length - 1].x},${points[points.length - 1].y}`;
+        d += ` Q ${points[points.length - 2].x + absoluteCoords.x},${points[points.length - 2].y + absoluteCoords.y} ${points[points.length - 1].x + absoluteCoords.x},${points[points.length - 1].y + absoluteCoords.y}`;
         return d;
-    };
-
-    const drawImage = () => {
-        const canvas = canvasRef.current;
-        if (canvas) {
-            const ctx = canvas.getContext('2d');
-            if (ctx) {
-                ctx.clearRect(0, 0, canvas.width, canvas.height);
-                images.forEach((img) => {
-                    ctx.drawImage(img.image, img.position.x, img.position.y);
-                });
-            }
-        }
     };
 
     const addImage = (src: string, width: number, height: number, x: number, y: number) => {
         const image = new Image();
         image.src = src;
         image.onload = () => {
-            setImages([
-                ...images,
+            setImages(prevImages => [
+                ...prevImages,
                 {
                     id: Date.now(),
                     name: src,
@@ -189,14 +215,14 @@ export default function CanvasProvider({ children, className }: { children?: Rea
                     image
                 },
             ]);
-            drawImage();
         };
-    }
+    };
+
 
     return (
         <canvasProviderContext.Provider value={{
-            internal: { onMouseDown, onMouseUp, onMouseMove, paths, getPathD, currentPath, selection, selectedBlock, removeLastPath, setPaths,  canvasRef },
-            external: { currentColor, setCurrentTool, setCurrentColor, activeLayer, setActiveLayer, layers, addImage, setLayers, currentTool }
+            internal: { onMouseDown, onMouseUp, onMouseMove, paths, getPathD, currentPath, selection, selectedBlock, removeLastPath, setPaths, canvasRef },
+            external: { currentColor, setCurrentTool, setCurrentColor, activeLayer, setActiveLayer, layers, addImage, setLayers, currentTool, removeCanvasLayer }
         }}>
             {children}
         </canvasProviderContext.Provider>
