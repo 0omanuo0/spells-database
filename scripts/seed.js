@@ -1,6 +1,8 @@
 const sqlite3 = require('sqlite3').verbose();
+const { randomUUID } = require('crypto');
 const fs = require('fs');
 const path = require('path');
+const { X } = require('react-bootstrap-icons');
 
 function openDatabase(callback) {
     let db = new sqlite3.Database('./database.db', sqlite3.OPEN_READWRITE | sqlite3.OPEN_CREATE, (err) => {
@@ -76,12 +78,18 @@ function insertDataSpells(db) {
                 return a ? a.split(',').map(c => c.trim()) : [];
             })[0] || [];
 
-        return db.run(`INSERT INTO spells (name, class, optionalClass, data) VALUES (?, ?, ?, ?)`, [name, JSON.stringify(classes), JSON.stringify(optionalClasses), JSON.stringify(data)], (err) => {
-            if (err) {
-                return console.error(err.message);
-            }
-            console.log(`Se ha insertado un registro spell a la base de datos.`);
-        });
+        return db.run(
+            `INSERT INTO spells (name, class, optionalClass, data) VALUES (?, ?, ?, ?)`,
+            [
+                name,
+                JSON.stringify(classes),
+                JSON.stringify(optionalClasses),
+                JSON.stringify(data)
+            ], (err) => {
+                if (err) {
+                    return console.error(err.message);
+                }
+            });
     });
 
 }
@@ -118,7 +126,6 @@ function insertDataItems(db) {
             if (err) {
                 return console.error(err.message);
             }
-            console.log(`Se ha insertado un registro item a la base de datos.`);
         });
     });
 }
@@ -151,7 +158,6 @@ function insertDataRace(db) {
             if (err) {
                 return console.error(err.message);
             }
-            console.log(`Se ha insertado un registro item a la base de datos.`);
         });
     });
 }
@@ -190,7 +196,6 @@ function insertDataBackground(db) {
             if (err) {
                 return console.error(err.message);
             }
-            console.log(`Se ha insertado un registro item a la base de datos.`);
         });
     });
 }
@@ -223,12 +228,45 @@ function insertDataFeat(db) {
             if (err) {
                 return console.error(err.message);
             }
-            console.log(`Se ha insertado un registro item a la base de datos.`);
         });
     });
 }
 
+function createTableMonsters(db, callback) {
+    const createTableSQL = `CREATE TABLE IF NOT EXISTS monsters (
+        name TEXT PRIMARY KEY,
+        data TEXT
+    );`;
 
+    return db.run(createTableSQL, (err) => {
+        if (err) {
+            console.error("err_create", err.message);
+            return callback(err);
+        }
+        console.log("Tabla 'monsters' creada o ya existente.");
+        callback(null);
+    });
+}
+
+function insertDataMonsters(db) {
+    // load ./data/bestiary/index.json to get the paths of the files
+    const paths = JSON.parse(fs.readFileSync('./data/bestiary/index.json'));
+    Object.values(paths).forEach(file => {
+        const fullPath = path.resolve(`./data/bestiary/${file}`);
+        const rawData = fs.readFileSync(fullPath);
+        const monsterData = JSON.parse(rawData);
+        monsterData.monster.forEach(monster => {
+            const name = monster.name;
+            const data = JSON.stringify(monster);
+
+            return db.run(`INSERT INTO monsters (name, data) VALUES (?, ?)`, [name, data], (err) => {
+                if (err) {
+                    return console.error(err.message);
+                }
+            });
+        });
+    });
+}
 
 
 // create table users and characters
@@ -247,11 +285,267 @@ function createTableUsers(db, callback) {
     });
 }
 
+function insertDataUsers(db) {
+    const users = [117045338603744539303,];
+    users.forEach(user => {
+        return db.run(`INSERT INTO users (id) VALUES (?)`, [user], (err) => {
+            if (err) {
+                return console.error(err.message);
+            }
+        });
+    });
+}
+
+// create table campaigns
+function createTableCampaigns(db, callback) {
+    const createTableSQL = `CREATE TABLE IF NOT EXISTS campaigns (
+        id TEXT PRIMARY KEY,
+        name TEXT,
+        characters TEXT,
+        tokens TEXT,
+        owner TEXT,
+        locations TEXT,
+        notes TEXT        
+    );`;
+
+    return db.run(createTableSQL, (err) => {
+        if (err) {
+            console.error("err_create", err.message);
+            return callback(err);
+        }
+        console.log("Tabla 'campaigns' creada o ya existente.");
+        callback(null);
+    });
+}
+
+function insertDataCampaigns(db) {
+    // create uuid v4 for every campaign
+    const campaigns = [
+        {
+            id: randomUUID(),
+            name: "campaign1",
+            characters: ["Gandalf", "Elarien"],
+            tokens: {
+                "Elarien": {
+                    health: 34,
+                    maxHealth: 50,
+                    armorClass: 15,
+                    spellSlots: { 1: 3, 2: 2, 3: 1 },
+                    spellSlotsUsed: { 1: 1, 2: 0, 3: 0 },
+                    v2D: {
+                        dataPath2d: "/content/vikingmedieval_game_character-v2.png",
+                        dx: 0,
+                        dy: 0,
+                        scale: 1,
+                        rotation: 0
+                    },
+                    v3D: {
+                        dataPath3d: "/content/vikingmedieval_game_character-v2.glb",
+                        dx: 0,
+                        dy: 0,
+                        dz: 0,
+                        scale: 1,
+                        rotation: 0
+                    }
+
+                },
+                "Gandalf": {
+                    health: 34,
+                    maxHealth: 50,
+                    armorClass: 15,
+                    spellSlots: { 1: 3, 2: 2, 3: 1 },
+                    spellSlotsUsed: { 1: 1, 2: 0, 3: 0 },
+                    v2D: {
+                        dataPath2d: "/content/vikingmedieval_game_character-v2.png",
+                        dx: 0,
+                        dy: 0,
+                        scale: 1,
+                        rotation: 0
+                    },
+                    v3D: {
+                        dataPath3d: "/content/vikingmedieval_game_character-v2.glb",
+                        dx: 0,
+                        dy: 0,
+                        dz: 0,
+                        scale: 1,
+                        rotation: 0
+                    }
+                },
+                "Orc1": {
+                    health: 34,
+                    maxHealth: 50,
+                    armorClass: 15,
+                    spellSlots: { 1: 3, 2: 2, 3: 1 },
+                    spellSlotsUsed: { 1: 1, 2: 0, 3: 0 },
+                    v2D: {
+                        dataPath2d: "/content/vikingmedieval_game_character-v2.png",
+                        dx: 0,
+                        dy: 0,
+                        scale: 1,
+                        rotation: 0
+                    },
+                    v3D: {
+                        dataPath3d: "/content/vikingmedieval_game_character-v2.glb",
+                        dx: 0,
+                        dy: 0,
+                        dz: 0,
+                        scale: 1,
+                        rotation: 0
+                    }
+                },
+                "Orc2": {
+                    health: 34,
+                    maxHealth: 50,
+                    armorClass: 15,
+                    spellSlots: { 1: 3, 2: 2, 3: 1 },
+                    spellSlotsUsed: { 1: 1, 2: 0, 3: 0 },
+                    v2D: {
+                        dataPath2d: "/content/vikingmedieval_game_character-v2.png",
+                        dx: 0,
+                        dy: 0,
+                        scale: 1,
+                        rotation: 0
+                    },
+                    v3D: {
+                        dataPath3d: "/content/vikingmedieval_game_character-v2.glb",
+                        dx: 0,
+                        dy: 0,
+                        dz: 0,
+                        scale: 1,
+                        rotation: 0
+                    }
+                },
+                "Orc3": {
+                    health: 34,
+                    maxHealth: 50,
+                    armorClass: 15,
+                    spellSlots: { 1: 3, 2: 2, 3: 1 },
+                    spellSlotsUsed: { 1: 1, 2: 0, 3: 0 },
+                    v2D: {
+                        dataPath2d: "/content/vikingmedieval_game_character-v2.png",
+                        dx: 0,
+                        dy: 0,
+                        scale: 1,
+                        rotation: 0
+                    },
+                    v3D: {
+                        dataPath3d: "/content/vikingmedieval_game_character-v2.glb",
+                        dx: 0,
+                        dy: 0,
+                        dz: 0,
+                        scale: 1,
+                        rotation: 0
+                    }
+                },
+                "Orc4": {
+                    health: 34,
+                    maxHealth: 50,
+                    armorClass: 15,
+                    spellSlots: { 1: 3, 2: 2, 3: 1 },
+                    spellSlotsUsed: { 1: 1, 2: 0, 3: 0 },
+                    v2D: {
+                        dataPath2d: "/content/vikingmedieval_game_character-v2.png",
+                        dx: 0,
+                        dy: 0,
+                        scale: 1,
+                        rotation: 0
+                    },
+                    v3D: {
+                        dataPath3d: "/content/vikingmedieval_game_character-v2.glb",
+                        dx: 0,
+                        dy: 0,
+                        dz: 0,
+                        scale: 1,
+                        rotation: 0
+                    }
+                },
+                "tarrasque": {
+                    health: 34,
+                    maxHealth: 50,
+                    armorClass: 15,
+                    spellSlots: { 1: 3, 2: 2, 3: 1 },
+                    spellSlotsUsed: { 1: 1, 2: 0, 3: 0 },
+                    v2D: {
+                        dataPath2d: "/content/vikingmedieval_game_character-v2.png",
+                        dx: 0,
+                        dy: 0,
+                        scale: 1,
+                        rotation: 0
+                    },
+                    v3D: {
+                        dataPath3d: "/content/vikingmedieval_game_character-v2.glb",
+                        dx: 0,
+                        dy: 0,
+                        dz: 0,
+                        scale: 1,
+                        rotation: 0
+                    }
+                }
+            },
+            owner: 117045338603744539303,
+            locations: [
+                {
+                    name: "location1",
+                    description: "description1",
+                    data: {}
+                },
+                {
+                    name: "location2",
+                    description: "description2",
+                    data: {
+                        "Gandalf": { X: 10, Y: 0, Z: 0 },
+                        "Orc1": { X: 1, Y: 0, Z: 0 },
+                        "Orc2": { X: 0, Y: 1, Z: 0 },
+                        "Orc3": { X: 0, Y: 10, Z: 0 },
+                        "Tarrasque": { X: 10, Y: 10, Z: 0 }
+                    },
+                    map: {
+                        v2D: {
+                            dataPath2d: "/content/vikingmedieval_game_character-v2.png",
+                            x: 0,
+                            y: 0,
+                            scale: 1,
+                            rotation: 0
+                        },
+                        v3D: {
+                            dataPath3d: "/content/vikingmedieval_game_character-v2.glb",
+                            x: 0,
+                            y: 0,
+                            z: 0,
+                            scale: 1,
+                            rotation: 0
+                        }
+                    }
+                }
+            ],
+            notes: [
+                {
+                    title: "note1",
+                    content: "content1"
+                },
+                {
+                    title: "note2",
+                    content: "content2"
+                }
+            ]
+        }
+    ]
+
+    campaigns.forEach(campaign => {
+        return db.run(`INSERT INTO campaigns (id, name, characters, tokens, owner, locations, notes) VALUES (?, ?, ?, ?, ?, ?, ?)`, [campaign.id, campaign.name, JSON.stringify(campaign.characters), JSON.stringify(campaign.tokens), campaign.owner, JSON.stringify(campaign.locations), JSON.stringify(campaign.notes)], (err) => {
+            if (err) {
+                return console.error(err.message);
+            }
+        });
+    });
+}
+
+
 // user_id references users(id), subclass is array of strings
 function createTableCharacters(db, callback) {
     const createTableSQL = `CREATE TABLE IF NOT EXISTS characters (
-        id INTEGER  AUTOINCREMENT,
-        user_id TEXT PRIMARY KEY,
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id TEXT,
         name TEXT,
         level INTEGER,
         class TEXT,
@@ -275,6 +569,75 @@ function createTableCharacters(db, callback) {
     });
 }
 
+function insertDataCharacters(db) {
+    const characters = [
+        {
+            user_id: "117045338603744539303",
+            name: "Gandalf",
+            level: 20,
+            class: { "Druid": 3, "Cleric": 1 },
+            stats: {
+                str: 10,
+                dex: 10,
+                con: 10,
+                int: 20,
+                wis: 10,
+                cha: 10
+            },
+            alignment: "Neutral Good",
+            feats: ["feat1", "feat2"],
+            skills: ["skill1", "skill2"],
+            spells: ["fireball", "magic missile"],
+            items: ["staff", "robe"],
+            campaign: "campaign1"
+        }
+        , {
+            user_id: "117045338603744539303",
+            name: "Elarien",
+            level: 5,
+            class: { "Druid": 3, "Cleric": 1 },
+            stats: {
+                str: 10,
+                dex: 10,
+                con: 10,
+                int: 10,
+                wis: 20,
+                cha: 10
+            },
+            alignment: "Chaotic Good",
+            feats: ["feat1", "feat2"],
+            skills: ["skill1", "skill2"],
+            spells: ["Poison Spray", "Resistance", "Control Flames", "Magic Stone", "Jump", "Find Traps", "Flaming Sphere"],
+            items: ["staff", "robe"],
+            campaign: "campaign1"
+        }
+    ];
+    characters.forEach(character => {
+        return db.run(
+            `INSERT INTO characters (user_id, name, level, class, stats, alignment, feats, skills, spells, items, campaign) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            [
+                character.user_id,
+                character.name,
+                character.level,
+                JSON.stringify(character.class),
+                JSON.stringify(character.stats),
+                character.alignment,
+                JSON.stringify(character.feats),
+                JSON.stringify(character.skills),
+                JSON.stringify(character.spells),
+                JSON.stringify(character.items),
+                character.campaign
+            ], (err) => {
+                if (err) {
+                    return console.error(err.message);
+                }
+                console.log("Character inserted");
+            });
+    }
+    );
+}
+
+
 function createTableClasses(db, callback) {
     const createTableSQL = `CREATE TABLE IF NOT EXISTS classes (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -295,9 +658,7 @@ function createTableClasses(db, callback) {
 function insertDataClasses(db) {
     // load every .json in ./data/class
     const paths = JSON.parse(fs.readFileSync('./data/class/index.json'));
-    console.log("PATHS: ", paths);
     Object.values(paths).forEach(file => {
-        console.log("FILE: ", file);
         const fullPath = path.resolve(`./data/class/${file}`);
         const rawData = fs.readFileSync(fullPath);
         const classData = JSON.parse(rawData);
@@ -308,7 +669,6 @@ function insertDataClasses(db) {
             if (err) {
                 return console.error(err.message);
             }
-            console.log(`Se ha insertado un registro class a la base de datos.`);
         });
     });
 }
@@ -337,11 +697,21 @@ openDatabase((err, db) => {
         if (err) return;
         insertDataFeat(db);
     });
+    createTableMonsters(db, (err) => {
+        if (err) return;
+        insertDataMonsters(db);
+    });
     createTableUsers(db, (err) => {
         if (err) return;
+        insertDataUsers(db);
+    });
+    createTableCampaigns(db, (err) => {
+        if (err) return;
+        insertDataCampaigns(db);
     });
     createTableCharacters(db, (err) => {
         if (err) return;
+        insertDataCharacters(db);
     });
     createTableClasses(db, (err) => {
         if (err) return;
