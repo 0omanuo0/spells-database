@@ -1,3 +1,5 @@
+import { Vector3 } from "three";
+
 export const spell_school = {
     "A": "abjuration",
     "C": "conjuration",
@@ -168,4 +170,67 @@ export type Spell = {
     savingThrow: string[],
     miscTags: string[],
     areaTags: string[]
+}
+
+
+export type Token = {
+    health: number,
+    maxHealth: number,
+    armorClass: number,
+    spellSlots: {[n:number]:number},
+    spellSlotsUsed: {[n:number]:number},
+    v2D:{
+        dataPath2d: string,
+        dx: number,
+        dy: number,
+        scale: number,
+        rotation: number
+    }
+    v3D:{
+        dataPath3d: string,
+        dx: number,
+        dy: number,
+        dz: number,
+        scale: number,
+        rotation: number
+    }
+}
+
+export type Location = {
+    name: string,
+    description: string,
+    data : {
+        [name:string]:{X:number, Y:number, Z:number}
+    },
+    map: {
+        v2D:{
+            dataPath2d: string,
+            dx: number,
+            dy: number,
+            scale: number,
+            rotation: number
+        }
+        v3D:{
+            dataPath3d: string,
+            dx: number,
+            dy: number,
+            dz: number,
+            scale: number,
+            rotation: number
+        }
+    }
+}
+
+
+export type Campign = {
+    id: number,
+    name: string,
+    characters: string[],
+    tokens: {[n:string]:Token},
+    owner: string
+    locations : Location[],
+    notes: {
+        title : string,
+        content : string
+    }[]
 }
