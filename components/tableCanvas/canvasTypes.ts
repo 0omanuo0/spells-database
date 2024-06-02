@@ -10,7 +10,7 @@ export interface Img {
     width: number;
     height: number;
     position: Point;
-    
+    layer: number;
     image: HTMLImageElement;
 }
 
@@ -19,14 +19,13 @@ export interface Path {
     points: Point[];
     color: string;
     layer: number;
-
-
 }
 
 
 export enum BlockType {
     img,
-    path
+    path,
+    undefined
 }
 
 export type Layer = {[n: number]: {name: string, type:BlockType}}

@@ -1,5 +1,5 @@
 import React, { useRef, useEffect, useState, useContext, createContext } from 'react';
-import { Path, Point, Tool, defaultLayers, Layer, Img } from './canvasTypes';
+import { Path, Point, Tool, defaultLayers, Layer, Img, BlockType } from './canvasTypes';
 import { getSvgPoint, isImageSelected, isPathSelected, removeLayer, setPosMoving, setStartMoving } from './canvasFunctions';
 
 
@@ -25,7 +25,7 @@ interface CanvasProviderProps {
         activeLayer: number;
         setActiveLayer: React.Dispatch<React.SetStateAction<number>>;
         layers: Layer;
-        addImage: (src: string, width: number, height: number, x: number, y: number) => void;
+        addImage: (src: string, width: number, height: number, x: number, y: number, layer?: number) => void;
         setLayers: React.Dispatch<React.SetStateAction<Layer>>;
         removeCanvasLayer: (layer: number) => void;
     };
@@ -63,6 +63,7 @@ export default function CanvasProvider({ children, className }: { children?: Rea
     const [relativePosition, setRelativePosition] = useState<{ images: Point[], paths: Point[][] } | null>(null);
 
 
+
     const drawImage = (selectedImages?: number[]) => {
         if (canvasRef.current) {
             const ctx = canvasRef.current.getContext('2d');
@@ -92,10 +93,16 @@ export default function CanvasProvider({ children, className }: { children?: Rea
         drawImage();
     }, [images, absoluteCoords]);
 
+    useEffect(() => {
+        // addImage('/static/image/bg.jpg', 800, 600, 0, 0, 0);
+    }, []);
+
     const onMouseDown = (e: React.MouseEvent<any>) => {
         if (currentTool === Tool.Pen) {
-            setCurrentPath([...currentPath, getSvgPoint(e)]);
-            setIsDrawing(true);
+            if(layers[activeLayer].type === BlockType.path || layers[activeLayer].type === BlockType.undefined){
+                setCurrentPath([...currentPath, getSvgPoint(e)]);
+                setIsDrawing(true);
+            }
         }
         else if (currentTool === Tool.Selector) {
             const canvas = canvasRef.current;
@@ -151,6 +158,11 @@ export default function CanvasProvider({ children, className }: { children?: Rea
     const onMouseUp = () => {
         if (currentTool === Tool.Pen) {
             if (currentPath.length > 0) {
+                if (layers[activeLayer].type !== BlockType.undefined && layers[activeLayer].type !== BlockType.path)
+                    return
+                else if (layers[activeLayer].type === BlockType.undefined)
+                    setLayers({ ...layers, [activeLayer]: { name: layers[activeLayer].name, type: BlockType.path } });;
+
                 const newPath: Path = { id: Date.now(), points: currentPath, color: currentColor, layer: activeLayer };
                 setPaths([...paths, newPath]);
                 setCurrentPath([]);
@@ -182,7 +194,7 @@ export default function CanvasProvider({ children, className }: { children?: Rea
 
 
     const removeLastPath = () => setPaths(paths.slice(0, -1));
-    const removeCanvasLayer = (layer: number) => removeLayer(layers, layer, setPaths, setLayers, activeLayer, setActiveLayer, paths)
+    const removeCanvasLayer = (layer: number) => removeLayer(layers, layer, setPaths, setImages, setLayers, activeLayer, setActiveLayer, paths, images)
 
     const getPathD = (points: Point[]): string => {
         if (points.length < 3) {
@@ -199,12 +211,17 @@ export default function CanvasProvider({ children, className }: { children?: Rea
         return d;
     };
 
-    const addImage = (src: string, width: number, height: number, x: number, y: number) => {
+    const addImage = (src: string, width: number, height: number, x: number, y: number, layer?: number) => {
         const image = new Image();
         image.src = src;
+        const targetLayer = layer || activeLayer;
+
+        if (layers[targetLayer].type !== BlockType.undefined && layers[targetLayer].type !== BlockType.img) return;
+        else if (layers[targetLayer].type === BlockType.undefined) setLayers({ ...layers, [targetLayer]: { name: layers[targetLayer].name, type: BlockType.img } });
+
         image.onload = () => {
-            setImages(prevImages => [
-                ...prevImages,
+            let imgToUpdate = [
+                ...images,
                 {
                     id: Date.now(),
                     name: src,
@@ -212,11 +229,15 @@ export default function CanvasProvider({ children, className }: { children?: Rea
                     width: width,
                     height: height,
                     position: { x, y },
+                    layer: targetLayer,
                     image
-                },
-            ]);
+                }
+            ]
+            imgToUpdate = imgToUpdate.sort((a, b) => a.layer - b.layer);
+            setImages(imgToUpdate);
         };
     };
+
 
 
     return (

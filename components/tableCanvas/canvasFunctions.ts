@@ -1,4 +1,4 @@
-import { Img, Layer, Path, Point, defaultLayersNames } from "./canvasTypes";
+import { BlockType, Img, Layer, Path, Point, defaultLayersNames } from "./canvasTypes";
 
 export const getSvgPoint = (e: React.MouseEvent<SVGSVGElement>): Point => {
     const svg = e.currentTarget;
@@ -74,9 +74,6 @@ export function setStartMoving(
     }
 }
 
-
-
-
 export function setPosMoving(
     e: React.MouseEvent<HTMLCanvasElement>,
     canvas: HTMLCanvasElement,
@@ -125,8 +122,6 @@ export function setPosMoving(
     }
 }
 
-
-
 export function isPathSelected(
     selection: [Point, Point],
     path: Path,
@@ -153,18 +148,22 @@ export function isImageSelected(
         img.position.y + img.height <= Math.max(selection[0].y + absoluteCoords.y, selection[1].y + absoluteCoords.y);
 }
 
-
 export function removeLayer(
     layers: Layer,
     layer: number,
     setPaths: React.Dispatch<React.SetStateAction<Path[]>>,
+    setImages: React.Dispatch<React.SetStateAction<Img[]>>,
     setLayers: React.Dispatch<React.SetStateAction<Layer>>,
     activeLayer: number,
     setActiveLayer: React.Dispatch<React.SetStateAction<number>>,
-    paths: Path[]
+    paths: Path[],
+    images: Img[]
 ) {
     if (defaultLayersNames.includes(layers[layer].name)) return;
-    setPaths(paths.filter(path => path.layer !== layer));
+    if(layers[layer].type === BlockType.path)
+        setPaths(paths.filter(path => path.layer !== layer));
+    else if(layers[layer].type === BlockType.img)
+        setImages(images.filter(img => img.layer !== layer));
     const newLayers = { ...layers };
     delete newLayers[layer];
     setLayers(newLayers);

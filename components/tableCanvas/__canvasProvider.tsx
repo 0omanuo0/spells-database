@@ -58,6 +58,7 @@ export default function CanvasProvider({ children, className }: { children?: Rea
     }
 
     useEffect(() => {
+        const image = useRef<HTMLImageElement>(new Image()).current;
         image.src = '/static/image/shield.png'; // Reemplaza con la URL de tu imagen
         image.onload = () => {
             setImages((prevImages) => [

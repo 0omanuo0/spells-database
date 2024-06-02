@@ -11,14 +11,16 @@ import DrawingImgCanvas from './imgCanvas';
 
 export default function DrawingCanvas() {
 
-
-
     const {
         external: {
             setCurrentTool, setCurrentColor, activeLayer, setActiveLayer, layers, addImage, setLayers, currentTool, removeCanvasLayer
         },
         internal: { removeLastPath, setPaths, paths }
     } = useCanvas();
+
+    // call addImage('/static/image/bg.jpg', 800, 600, 0, 0, 0); when load the page
+    // componentDidMount(() => {
+
 
     return (
 
@@ -58,7 +60,7 @@ export default function DrawingCanvas() {
                                 ...layers,
                                 [newLayer]: {
                                     name: `Layer ${newLayer}`,
-                                    type: BlockType.path
+                                    type: BlockType.undefined
                                 }
                             }
                         );
