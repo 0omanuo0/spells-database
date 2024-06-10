@@ -1,4 +1,7 @@
 // db.ts
+
+import { unstable_noStore as noStore } from 'next/cache';
+
 import sqlite3 from 'sqlite3';
 import { open } from 'sqlite';
 import type { Spell, User, Character, Item } from '@/lib/types';
@@ -36,18 +39,25 @@ async function checkCharacterExists(id: string): Promise<boolean> {
     });
 }
 
-async function modifyCharacter(character: Character) {
-    return new Promise(async (resolve, reject) => {
-        const db = await openDb();
-        await db.run(
-            `UPDATE characters SET name=?, level=?, class=?, subclass=?, spells=?, items=?, campaign=? WHERE id=?`,
-            [
-                character.name, character.level, character.class, JSON.stringify(character.other_class), JSON.stringify(character.spells), JSON.stringify(character.items), character.campaign,
-                character.id
-            ]
-        );
-    });
+// async function modifyCharacter(character: Character) {
+//     return new Promise(async (resolve, reject) => {
+//         const db = await openDb();
+//         await db.run(
+//             `UPDATE characters SET name=?, level=?, class=?, subclass=?, spells=?, items=?, campaign=? WHERE id=?`,
+//             [
+//                 character.name, character.level, character.class, JSON.stringify(character.other_class), JSON.stringify(character.spells), JSON.stringify(character.items), character.campaign,
+//                 character.id
+//             ]
+//         );
+//     });
+// }
+
+export async function getBackground(name: string) {
+    const db = await openDb();
+    const background = await db.get(`SELECT * FROM background WHERE name=?`, [name]);
+    return JSON.parse(background.data) as { [key: string]: any };
 }
+
 
 export async function getItem(id: string) {
     const db = await openDb();
@@ -83,6 +93,7 @@ export async function getUser(id: string) {
 }
 
 export async function getCharacter(id: string) {
+    noStore();
     const db = await openDb();
     const character: Character | undefined = await db.get(`SELECT * FROM characters WHERE id=?`, [id]);
     return character;
@@ -100,9 +111,7 @@ export async function getClass(name: string) {
 export async function getSpells() {
     const db = await openDb();
     const data = await db.all('select * from spells');
-    const spells = data.map((spell) => {
-        return JSON.parse(spell.data);
-    });
+    const spells = data.map((spell) => JSON.parse(JSON.parse(spell.data)));
     return spells;
 }
 
@@ -138,9 +147,9 @@ export async function getMaxSpellLevelByClass(classD: string, level:number) {
 }
 
 export async function getSpellsByName(name: string) {
-    // filter by name with sql (to lower case name and spell.name)
+    // filter by name with sql (to lower case name and spell.name) needs to be exact
     const db = await openDb();
-    const data = await db.all('select * from spells where lower(name) like ?', [name.toLowerCase()]);
+    const data = await db.all('select * from spells where lower(name) = ?', [name.toLowerCase()]);
     const spells = data.map((spell) => {
         return JSON.parse(spell.data);
     });

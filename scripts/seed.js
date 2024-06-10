@@ -1,8 +1,8 @@
+
 const sqlite3 = require('sqlite3').verbose();
 const { randomUUID } = require('crypto');
 const fs = require('fs');
-const path = require('path');
-const { X } = require('react-bootstrap-icons');
+const path = require('path'); 
 
 function openDatabase(callback) {
     let db = new sqlite3.Database('./database.db', sqlite3.OPEN_READWRITE | sqlite3.OPEN_CREATE, (err) => {
@@ -545,12 +545,18 @@ function insertDataCampaigns(db) {
 function createTableCharacters(db, callback) {
     const createTableSQL = `CREATE TABLE IF NOT EXISTS characters (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
-        user_id TEXT,
-        name TEXT,
-        level INTEGER,
-        class TEXT,
-        stats TEXT,
+        user_id TEXT NOT NULL,
+        name TEXT NOT NULL,
+        class TEXT NOT NULL,
+        subclass TEXT,
+        stats TEXT NOT NULL,
         alignment TEXT,
+        background TEXT,
+        description TEXT,
+        traits TEXT,
+        bonds TEXT,
+        ideals TEXT,
+        flaws TEXT,
         feats TEXT,
         skills TEXT,
         spells TEXT,
@@ -585,10 +591,24 @@ function insertDataCharacters(db) {
                 cha: 10
             },
             alignment: "Neutral Good",
-            feats: ["feat1", "feat2"],
-            skills: ["skill1", "skill2"],
-            spells: ["fireball", "magic missile"],
-            items: ["staff", "robe"],
+            background: "Sage",
+            description: {
+                gender: undefined,
+                eyes: "blue",
+                hair: "grey",
+                skin: "light skin",
+                height: "1.8 m",
+                weight: "80 kg",
+                age: 201
+            },
+            traits: "I use polysyllabic words that convey the impression of great erudition.",
+            bonds: "It is my duty to protect the world from the forces of evil that seek to destroy it.",
+            ideals: "Knowledge is the path to power and domination.",
+            flaws: "I am easily distracted by the promise of information.",
+            feats: ["War Caster", "Resilient"],
+            skills: ["History", "Arcana", "Religion", "Insight"],
+            spells: ["Fireball", "Magic missile"],
+            items: ["Staff", "Robes"],
             campaign: "campaign1"
         }
         , {
@@ -605,23 +625,43 @@ function insertDataCharacters(db) {
                 cha: 10
             },
             alignment: "Chaotic Good",
-            feats: ["feat1", "feat2"],
-            skills: ["skill1", "skill2"],
+            background: "Far Traveler",
+            description: {
+                gender: "f",
+                eyes: "left eye gray, right eye blue",
+                hair: "cinder",
+                skin: "tanned",
+                height: "1.75 m",
+                weight: "65 kg",
+                age: 73
+            },
+            traits: "I am a free spirit, no one tells me what to do.",
+            bonds: "I will sacrifice everything to protect who deserves it.",
+            ideals: "Being free is the most important thing in life.",
+            flaws: "I am too impulsive.",
+            feats: ["Fey Touched", "Resilient"],
+            skills: ["Acrobatics", "Performance", "Deception", "Nature"],
             spells: ["Poison Spray", "Resistance", "Control Flames", "Magic Stone", "Jump", "Find Traps", "Flaming Sphere"],
-            items: ["staff", "robe"],
+            items: ["Quarterstaff", "Leather Armor"],
             campaign: "campaign1"
         }
     ];
     characters.forEach(character => {
         return db.run(
-            `INSERT INTO characters (user_id, name, level, class, stats, alignment, feats, skills, spells, items, campaign) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            `INSERT INTO characters 
+                (user_id, name, class, stats, alignment, background, description, traits, bonds, ideals, flaws, feats, skills, spells, items, campaign) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
             [
                 character.user_id,
                 character.name,
-                character.level,
                 JSON.stringify(character.class),
                 JSON.stringify(character.stats),
                 character.alignment,
+                character.background,
+                JSON.stringify(character.description),
+                character.traits,
+                character.bonds,
+                character.ideals,
+                character.flaws,
                 JSON.stringify(character.feats),
                 JSON.stringify(character.skills),
                 JSON.stringify(character.spells),
