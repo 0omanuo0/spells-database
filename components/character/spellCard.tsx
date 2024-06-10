@@ -42,20 +42,40 @@ export default function SpellCard({ spell }: { spell: Spell }) {
 
 function parseEntries(entries: string) {
     // check for {@damage 1d8} or {@dice 1d8} and replace with <span>value</span>
-    const regex = /{@(damage|dice) (\d+d\d+)}/g;
+    const regexDamage = /\{@(damage|dice) (\d*d\d+)(?: *[+-] *(\d+))?\}/g;
     // check for {@scaledamage 2d10|2-9|1d10} and replace with <span>{1d10} from level {2}</span>
-    const regexScale = /{@(scaledamage|scaledice) (\d+d\d+)\|(\d+-\d+)\|(\d+d\d+)}/g;
+    const regexScale = /{@(scaledamage|scaledice) (\d*d\d+)\|(\d+-\d+)\|(\d+d\d+)}/g;
+    // check for {@item item} and replace with <span>item</span>
+    const regexItem = /{@item ([^}]+)}/g;
+    // check for {@condition condition} and replace with <span>condition</span>
+    const regexCondition = /{@([^}]+) ([^}]+)}/g;
+
+
     let entry = entries;
-    entry = entry.replace(regex, (match, p1, p2) => {
+    entry = entry.replace(regexDamage, (match, p1, p2, p3) => {
         // Crea el componente con el valor capturado
-        const componentString = ReactDOMServer.renderToString(<span className='italic font-semibold'>{p2}</span>);
+        const componentString = ReactDOMServer.renderToString(<span className='italic font-semibold'>{`${p2}${p3 ? "+" + String(p3) : ""}`}</span>);
         return componentString;
     });
     entry = entry.replace(regexScale, (match, p1, p2, p3, p4) => {
         const componentString = ReactDOMServer.renderToString(
-                <span className='italic font-semibold'>{p4} </span>
+            <span className='italic font-semibold'>{p4} </span>
         );
         console.log(componentString);
+        return componentString;
+    });
+
+    entry = entry.replace(regexItem, (match, p1) => {
+        const componentString = ReactDOMServer.renderToString(
+            <span className='italic font-semibold'>{p1}</span>
+        );
+        return componentString;
+    });
+
+    entry = entry.replace(regexCondition, (match, p1, p2) => {
+        const componentString = ReactDOMServer.renderToString(
+            <span className='italic font-semibold'>{p2}</span>
+        );
         return componentString;
     });
 
@@ -94,9 +114,42 @@ function Card({ spell }: { spell: Spell }) {
                 </div>
             </div>
             <article className="py-10 space-y-10">
-                <div className='space-y-2' >
+                <div className='space-y-2 max-h-[60vh] overflow-scroll' >
                     {
                         spell.entries.map((entry, index) => {
+                            if (typeof entry === "object") {
+                                let content = [];
+                                let type = entry["type"];
+                                if (type === "list") {
+                                    const items = entry["items"] as string[];
+                                    const parsedEntry: string[] = items.map(e => parseEntries(e));
+                                    return (
+                                        <ul key={index} className="text-sm list-disc list-inside">
+                                            {
+                                                parsedEntry.map((e, index) => (
+                                                    <li key={index} dangerouslySetInnerHTML={{ __html: e }} className=' -indent-4 pl-4'></li>
+                                                ))
+                                            }
+                                        </ul>
+                                    )
+                                }
+                                else if (type === "quote" || type === "entries") {
+                                    content = entry["entries"] as string[];
+                                    const parsedEntry: string[] = content.map(e => parseEntries(e));
+                                    return (
+                                        <>
+                                            {entry["name"] && <p className="italic font-semibold">{entry["name"]}</p>}
+                                            <blockquote key={index} className="text-sm">
+                                                {
+                                                    parsedEntry.map((e, index) => (
+                                                        <p key={index} dangerouslySetInnerHTML={{ __html: e }}></p>
+                                                    ))
+                                                }
+                                            </blockquote>
+                                        </>
+                                    )
+                                }
+                            }
                             const parsedEntry = parseEntries(entry);
                             return (
                                 <p key={index} className="text-sm" dangerouslySetInnerHTML={{ __html: parsedEntry }}></p>
@@ -111,7 +164,7 @@ function Card({ spell }: { spell: Spell }) {
                         {
                             spell.entriesHigherLevel.map((entry, index) => {
                                 const parsedEntry = parseEntries(entry.entries[0]);
-                                console.log("PARSED: ", parsedEntry);
+
                                 return (
                                     <p key={index} className="text-sm" dangerouslySetInnerHTML={{ __html: parsedEntry }}></p>
                                 )

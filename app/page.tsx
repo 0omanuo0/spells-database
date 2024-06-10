@@ -19,14 +19,13 @@ export default function Home() {
         const fetchData = async () => {
             const res = await fetch(`/api/spells?q=${finder}`);
             // console.log(await res.json());
-            let spells : string[] = await res.json();
+            let spells : Spell[] = await res.json();
             // if are more than 20 spells, slice the array
             if (spells.length > 20) {
                 spells = spells.slice(0, 20);
             }
             const spellsCards = spells.map((spell) => {
-                const spellp : Spell = JSON.parse(spell);
-                return <SpellCard key={spellp.name} spell={spellp} />;
+                return <SpellCard key={spell.name} spell={spell} />;
             });
             setSpells(spellsCards);
         }
