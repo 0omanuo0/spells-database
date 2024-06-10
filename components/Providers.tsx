@@ -6,9 +6,9 @@ import CanvasProvider from "./tableCanvas/editorProvider";
 export default function Providers({ children }: { children: React.ReactNode }) {
     return (
         <SessionProvider>
-            <CanvasProvider>
+            {/* <CanvasProvider> */}
                 {children}
-            </CanvasProvider>
+            {/* </CanvasProvider> */}
         </SessionProvider>
     );
 }

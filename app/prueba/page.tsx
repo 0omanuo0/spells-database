@@ -35,7 +35,6 @@ export default function App() {
             const campign: Campign = await data.json();
 
             const tokens = Object.keys(campign.locations[1].data).map((key) => {
-                console.log(campign.locations[1])
                 return <Token
                     position={new THREE.Vector3(campign.locations[1].data[key].X, campign.locations[1].data[key].Z, campign.locations[1].data[key].Y)}
                     scale={0.001}
